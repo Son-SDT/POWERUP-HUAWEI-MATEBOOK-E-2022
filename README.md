@@ -1,10 +1,20 @@
+# [VIETNAMESE BELOW]
 # POWERUP-HUAWEI-MATEBOOK-E-2022
 
 Automatically switch [ThrottleStop](https://throttlestop.net) power profiles based on AC/Battery status — no more manually toggling profiles every time you plug or unplug the charger.
 
 Built for the **Huawei MateBook E 2022**, but works on any laptop where you want ThrottleStop to auto-switch between an AC profile and a Battery profile.
 
-## Setup
+("PowerUp" here means making the Huawei MateBook E 2022 more powerful — it has no relation to TechPowerUp.)
+
+## 1. Results
+
+- Default **9W → 15W** (when plugged in via ThrottleStop): LOL goes from **3x-4x fps → 6x-9x fps**
+- Temperature: **6x°C → 7x°C**
+- Tested on **Windows 10 LTSC**
+- Note: sit in a cool/air-conditioned room for the best thermal results when raising the power limit
+
+## 2. Setup
 
 **Step 1** — Download ThrottleStop from [throttlestop.net](https://throttlestop.net)
 
@@ -25,6 +35,25 @@ git clone https://github.com/Son-SDT/POWERUP-HUAWEI-MATEBOOK-E-2022.git
 schtasks /Run /TN "ThrottleStop_Monitor"
 ```
 
+## 3. How the script works
+
+The system has 2 main parts, running fully in the background — no windows, no popups:
+
+**a) `monitor.ps1`** — an infinite loop that, every **5 seconds**:
+- Checks whether the laptop is on **AC** or **Battery** (calls the `GetSystemPowerStatus` WinAPI directly — very lightweight, negligible RAM/CPU usage)
+- Compares it to the state from the previous check
+- If **unchanged** → does nothing, just makes sure ThrottleStop is still running (auto-restarts it if it was closed or crashed)
+- If **changed** (charger just plugged in/unplugged):
+  1. Closes the currently running ThrottleStop
+  2. Copies the matching `.ini` file (`ThrottleStop_AC.ini` or `ThrottleStop_Battery.ini`) over `ThrottleStop.ini`
+  3. Relaunches ThrottleStop with the new profile
+
+**b) 2 Scheduled Tasks** (created by `1_Setup_Task_run_once.bat`, with Admin rights):
+- `ThrottleStop_Elevated` — dedicated to launching `ThrottleStop.exe` with elevated rights, without showing a UAC popup
+- `ThrottleStop_Monitor` — runs `monitor.ps1` hidden in the background, with elevated rights (needed to close a ThrottleStop instance running as Admin), auto-starting on every Windows login
+
+Because the 2 tasks are split this way, relaunching ThrottleStop on every profile switch **never shows a "Yes" UAC popup**, and the whole process takes under 2 seconds, completely silently.
+
 ## Uninstall
 ```
 schtasks /Delete /TN "ThrottleStop_Elevated" /F
@@ -38,7 +67,7 @@ This project only automates launching and configuring ThrottleStop — it doesn'
 
 ---
 
-[VIETNAMESE BELOW]
+
 
 # POWERUP-HUAWEI-MATEBOOK-E-2022
 
@@ -46,9 +75,11 @@ Tự động chuyển profile [ThrottleStop](https://throttlestop.net) theo tr�
 
 Làm cho **Huawei MateBook E 2022**, nhưng dùng được cho bất kỳ laptop nào muốn ThrottleStop tự đổi giữa profile AC và profile Pin.
 
+("PowerUp" ở đây nghĩa là làm cho Huawei MateBook E 2022 mạnh hơn, không liên quan gì tới TechPowerUp.)
+
 ## 1. Hiệu quả
 
-- Mặc định **9W → 15W** (khi cắm sạc): LOL từ **3x-4x fps → 6x-9x fps**
+- Mặc định **9W → 15W** (khi cắm sạc, qua ThrottleStop): LOL từ **3x-4x fps → 6x-9x fps**
 - Nhiệt lượng: **6x°C → 7x°C**
 - Đã test trên **Windows 10 LTSC**
 - Lưu ý: nên ngồi phòng lạnh (mát) để đạt hiệu quả tản nhiệt tốt nhất khi tăng power limit
